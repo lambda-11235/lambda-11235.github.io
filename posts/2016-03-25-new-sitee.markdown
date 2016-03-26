@@ -1,0 +1,6 @@
+---
+title: New Site
+author: Taran Lynn
+---
+
+I just created a new site with Hakyll. Woohoo!
