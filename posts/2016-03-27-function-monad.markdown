@@ -35,11 +35,6 @@ defined as. The operation of bind is, however, far more interesting. Consider
 foo = do x <- id
          y <- sqrt
          return $ x + y
-    = id >>= (\x -> sqrt >>= (\y -> x + y))
-    = \r -> (\x -> (\r' -> (\y -> x + y) (sqrt r'))) (id r) r
-    = \r -> (\x r' -> (\y -> x + y) (sqrt r'))) (id r) r
-    = \r -> ((\y -> (id r) + y) (sqrt r))
-    = \r -> (id r) + (sqrt r)
 ```
 
 If we use this function we find that `foo 4` is `6.0`, and `foo 9` is `12.0`. On
@@ -50,7 +45,7 @@ to `id` and `sqrt` and adds the two results. Or, in code
 foo r = (id r) + (sqrt r)
 ```
 
-To find out why this is lets do some transformation on `foo`.
+To find out why this is let's do some transformation on `foo`.
 
 ``` haskell
 foo = do x <- id
