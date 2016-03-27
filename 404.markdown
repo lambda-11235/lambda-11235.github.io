@@ -1,0 +1,9 @@
+----
+title: 404 Error
+----
+
+``` haskell
+-- The page you are looking for is not inhabited.
+page :: WebPage
+page = page
+```

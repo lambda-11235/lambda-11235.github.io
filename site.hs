@@ -20,7 +20,8 @@ main = hakyll $ do
 
     match (fromList ["about.markdown"
                     , "contact.markdown"
-                    , "papers.markdown"]) $ do
+                    , "papers.markdown"
+                    , "404.markdown"]) $ do
         route   $ setExtension "html"
         compile $ pandocCompiler
             >>= loadAndApplyTemplate "templates/default.html" defaultContext
