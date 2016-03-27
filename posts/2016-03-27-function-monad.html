@@ -43,15 +43,10 @@
 <p>Where <code>((-&gt;) r)</code> is similar in form to <code>Map a</code>. Both of these are defined to be monadic over their second type argument. This means that <code>(r -&gt; t)</code> is monadic over <code>t</code>, meaning the types for <code>return</code> and bind (<code>(&gt;&gt;=)</code>) have to be <code>t -&gt; (r -&gt; t)</code> and <code>(r -&gt; t) -&gt; (t -&gt; (r -&gt; s)) -&gt; (r -&gt; s)</code>, respectively. The first signature is obviously the same as <code>const</code>, hence this is what <code>return</code> is defined as. The operation of bind is, however, far more interesting. Consider</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foo <span class="fu">=</span> <span class="kw">do</span> x <span class="ot">&lt;-</span> id
          y <span class="ot">&lt;-</span> sqrt
-         return <span class="fu">$</span> x <span class="fu">+</span> y
-    <span class="fu">=</span> id <span class="fu">&gt;&gt;=</span> (\x <span class="ot">-&gt;</span> sqrt <span class="fu">&gt;&gt;=</span> (\y <span class="ot">-&gt;</span> x <span class="fu">+</span> y))
-    <span class="fu">=</span> \r <span class="ot">-&gt;</span> (\x <span class="ot">-&gt;</span> (\r' <span class="ot">-&gt;</span> (\y <span class="ot">-&gt;</span> x <span class="fu">+</span> y) (sqrt r'))) (id r) r
-    <span class="fu">=</span> \r <span class="ot">-&gt;</span> (\x r' <span class="ot">-&gt;</span> (\y <span class="ot">-&gt;</span> x <span class="fu">+</span> y) (sqrt r'))) (id r) r
-    <span class="fu">=</span> \r <span class="ot">-&gt;</span> ((\y <span class="ot">-&gt;</span> (id r) <span class="fu">+</span> y) (sqrt r))
-    <span class="fu">=</span> \r <span class="ot">-&gt;</span> (id r) <span class="fu">+</span> (sqrt r)</code></pre></div>
+         return <span class="fu">$</span> x <span class="fu">+</span> y</code></pre></div>
 <p>If we use this function we find that <code>foo 4</code> is <code>6.0</code>, and <code>foo 9</code> is <code>12.0</code>. On closer inspection it appears that <code>foo</code> is a function that passes its argument to <code>id</code> and <code>sqrt</code> and adds the two results. Or, in code</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foo r <span class="fu">=</span> (id r) <span class="fu">+</span> (sqrt r)</code></pre></div>
-<p>To find out why this is lets do some transformation on <code>foo</code>.</p>
+<p>To find out why this is let’s do some transformation on <code>foo</code>.</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foo <span class="fu">=</span> <span class="kw">do</span> x <span class="ot">&lt;-</span> id
          y <span class="ot">&lt;-</span> sqrt
          return <span class="fu">$</span> x <span class="fu">+</span> y
