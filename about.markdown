@@ -11,3 +11,6 @@ have the most experience in are
 4. Clojure
 5. Scheme
 6. Scala
+
+I am currently (as of 2016) working on my degree and am **not** looking for a
+job.
