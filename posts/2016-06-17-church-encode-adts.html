@@ -47,7 +47,7 @@ foo trpl <span class="fu">=</span> trpl (\x y z <span class="ot">-&gt;</span> <s
 <p>can be directly translated to the ADT version as</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">foo ::</span> <span class="dt">Triple</span> a b c <span class="ot">-&gt;</span> <span class="fu">...</span>
 foo trpl<span class="fu">@</span>(<span class="dt">Triple</span> x y z) <span class="fu">=</span> <span class="fu">...</span></code></pre></div>
-<p>This relation to pattern matching is more interesting for types that are both sum and product types, but first lets discuss pure sum types. The simplest example is a boolean value <code>data Bool = False | True</code>. This can be encoded as a function that takes multiple argument and chooses between them.</p>
+<p>This relation to pattern matching is more interesting for types that containt both sums and products, but first lets discuss pure sums. The simplest example is a boolean value <code>data Bool = False | True</code>. This can be encoded as a function that takes multiple argument and chooses between them.</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Bool</span> <span class="fu">=</span> forall r<span class="fu">.</span> r <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r
 
 <span class="ot">false ::</span> <span class="dt">Bool</span>
@@ -63,7 +63,7 @@ foo <span class="dt">True</span> <span class="fu">=</span> baz</code></pre></div
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">foo ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="fu">...</span>
 foo b <span class="fu">=</span> b bar baz</code></pre></div>
 <p>This shows that the choice encoded into the function representation is directly related to the choice made in pattern matching.</p>
-<p>A more interesting case is when we have a type of sums of product. The typical example would be the Either type. These cases can be encoded as a function that takes multiple functions as arguments, and selectively applies it contained values to these functions. The encoding of Either is thus</p>
+<p>A more interesting case is when we have a of the two previous cases. The typical example would be the Either type. These cases can be encoded as a function that takes multiple functions as arguments, and selectively applies its contained values to those functions. The encoding of Either is thus</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Either</span> a b <span class="fu">=</span> forall r<span class="fu">.</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (b <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r
 
 <span class="ot">left ::</span> a <span class="ot">-&gt;</span> <span class="dt">Either</span> a b
@@ -118,9 +118,27 @@ cons x xs <span class="fu">=</span> <span class="dt">List</span> <span class="fu
 <span class="ot">nil ::</span> <span class="dt">List</span> a
 nil <span class="fu">=</span> <span class="dt">List</span> <span class="fu">$</span> \f y <span class="ot">-&gt;</span> y</code></pre></div>
 <p>We can then apply these lists using the <code>runList</code> function. Here’s an example function</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">showList<span class="ot"> ::</span> <span class="dt">Show</span> a <span class="ot">=&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> <span class="dt">String</span>
-showList xs <span class="fu">=</span> runList xs (\y ys <span class="ot">-&gt;</span> (show y) <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> (showList ys)) <span class="st">&quot;&quot;</span></code></pre></div>
-<p><code>showList (cons 1 (cons 2 (cons 3 nil)))</code> then produces the string <code>&quot;1 2 3 &quot;</code>.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">stringifyList ::</span> <span class="dt">Show</span> a <span class="ot">=&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> <span class="dt">String</span>
+stringifyList xs <span class="fu">=</span> runList xs (\y ys <span class="ot">-&gt;</span> (show y) <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> (stringifyList ys)) <span class="st">&quot;&quot;</span></code></pre></div>
+<p><code>stringifyList (cons 1 (cons 2 (cons 3 nil)))</code> then produces the string <code>&quot;1 2 3 &quot;</code>.</p>
+<p>Note that this List encoding isn’t strictly a church encoding. This is because it is nonrepresentable in typed lambda calculus, due to the use of recursive types. A correct way to church encode List is as a fold.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">List</span> a <span class="fu">=</span> forall r<span class="fu">.</span> r <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r
+
+<span class="ot">nil ::</span> <span class="dt">List</span> a
+nil x _ <span class="fu">=</span> x
+
+<span class="ot">cons ::</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a
+cons x xs y f <span class="fu">=</span> f x (xs y f)</code></pre></div>
+<p>Such an encoded list <code>xs</code> can be converted into a regular list by running <code>xs [] (:)</code>.</p>
+<p>We can also encode the Tree type as a fold.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">{-</span>
+<span class="co">data Tree a = Leaf a</span>
+<span class="co">            | Branch (Tree a) a (Tree a)</span>
+<span class="co">-}</span>
+
+<span class="kw">type</span> <span class="dt">Tree</span> a <span class="fu">=</span> forall r<span class="fu">.</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</code></pre></div>
+<p>An encoded tree <code>t</code> can be converted to an ADT by running <code>t Leaf Branch</code>.</p>
+<p>This shows that a general technique for encoding recursive ADTs is to replace the recursive arguments with the church encoded function’s return type (which is <code>r</code> in the previous examples).</p>
 
         </div>
         <div id="footer">
