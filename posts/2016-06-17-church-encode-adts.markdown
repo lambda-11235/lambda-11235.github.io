@@ -48,10 +48,10 @@ foo :: Triple a b c -> ...
 foo trpl@(Triple x y z) = ...
 ```
 
-This relation to pattern matching is more interesting for types that are both
-sum and product types, but first lets discuss pure sum types. The simplest
-example is a boolean value `data Bool = False | True`. This can be encoded as a
-function that takes multiple argument and chooses between them.
+This relation to pattern matching is more interesting for types that containt
+both sums and products, but first lets discuss pure sums. The simplest example
+is a boolean value `data Bool = False | True`. This can be encoded as a function
+that takes multiple argument and chooses between them.
 
 ``` haskell
 type Bool = forall r. r -> r -> r
@@ -80,10 +80,10 @@ foo b = b bar baz
 This shows that the choice encoded into the function representation is directly
 related to the choice made in pattern matching.
 
-A more interesting case is when we have a type of sums of product. The typical
+A more interesting case is when we have a of the two previous cases. The typical
 example would be the Either type. These cases can be encoded as a function that
-takes multiple functions as arguments, and selectively applies it contained
-values to these functions.  The encoding of Either is thus
+takes multiple functions as arguments, and selectively applies its contained
+values to those functions.  The encoding of Either is thus
 
 ``` haskell
 type Either a b = forall r. (a -> r) -> (b -> r) -> r
@@ -109,8 +109,8 @@ foo e@(Right y) = ...
 ```
 
 These methods can be used to encode most ADTs, with one exception that I'll get
-to. First, I'd like to demonstrate the power of these techniques with a more complicated example.
-The following
+to. First, I'd like to demonstrate the power of these techniques with a more
+complicated example. The following
 ``` haskell
 data Foo a b c = Foo a b c
                | Bar a b
@@ -138,9 +138,9 @@ sum :: Num a => Foo a a a -> a
 sum f = f (\x y z -> x + y + z) (+) id
 ```
 
-The area where church encoding ADTs becomes problematic is when encoding recursively defined
-ADTs. The typical example of this is the List type, where `data List a = Cons a (List a) | Nil`.
-The naive way to encode this would be as
+The area where church encoding ADTs becomes problematic is when encoding
+recursively defined ADTs. The typical example of this is the List type, where
+`data List a = Cons a (List a) | Nil`.  The naive way to encode this would be as
 ``` haskell
 type List a = forall b. (a -> List a -> b) -> b -> b
 
@@ -166,7 +166,37 @@ nil = List $ \f y -> y
 We can then apply these lists using the `runList` function. Here's an example
 function
 ``` haskell
-showList :: Show a => List a -> String
-showList xs = runList xs (\y ys -> (show y) ++ " " ++ (showList ys)) ""
+stringifyList :: Show a => List a -> String
+stringifyList xs = runList xs (\y ys -> (show y) ++ " " ++ (stringifyList ys)) ""
 ```
-`showList (cons 1 (cons 2 (cons 3 nil)))` then produces the string `"1 2 3 "`.
+`stringifyList (cons 1 (cons 2 (cons 3 nil)))` then produces the string `"1 2 3 "`.
+
+Note that this List encoding isn't strictly a church encoding. This is because
+it is nonrepresentable in typed lambda calculus, due to the use of recursive
+types. A correct way to church encode List is as a fold.
+``` haskell
+type List a = forall r. r -> (a -> r -> r) -> r
+
+nil :: List a
+nil x _ = x
+
+cons :: a -> List a -> List a
+cons x xs y f = f x (xs y f)
+```
+Such an encoded list `xs` can be converted into a regular list by running `xs []
+(:)`.
+
+We can also encode the Tree type as a fold.
+``` haskell
+{-
+data Tree a = Leaf a
+            | Branch (Tree a) a (Tree a)
+-}
+
+type Tree a = forall r. (a -> r) -> (r -> a -> r -> r) -> r
+```
+An encoded tree `t` can be converted to an ADT by running `t Leaf Branch`.
+
+This shows that a general technique for encoding recursive ADTs is to replace
+the recursive arguments with the church encoded function's return type (which is
+`r` in the previous examples).
