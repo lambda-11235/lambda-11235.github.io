@@ -34,101 +34,101 @@
 <p><strong>Note: The church encoded type aliases require Rank2Types or RankNTypes.</strong></p>
 <p>Church encoding is a technique whereby data structures are represented by functions. To this end it can be shown that any Haskell ADT can be represented by a function. I will be ignoring GADTs, and focus only on product and sum types.</p>
 <p>To start, lets look at how product types can be encoded as a function. I will use a triple, or 3-element tuple, as my example. First we can see the normal ADT definition.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">data</span> <span class="dt">Triple</span> a b c <span class="fu">=</span> <span class="dt">Triple</span> a b c</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">data</span> <span class="dt">Triple</span> a b c <span class="ot">=</span> <span class="dt">Triple</span> a b c</a></code></pre></div>
 <p>One possible way to encode this as a function is as a function that takes another function as an argument and passes its stored values to that function. To see how this works, we can look at the type alias and constructor for the church encoded version.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">type</span> <span class="dt">Triple</span> a b c <span class="fu">=</span> <span class="kw">forall</span> r<span class="fu">.</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</a>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">type</span> <span class="dt">Triple</span> a b c <span class="ot">=</span> <span class="kw">forall</span> r<span class="op">.</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</a>
 <a class="sourceLine" id="cb2-2" title="2"></a>
 <a class="sourceLine" id="cb2-3" title="3"><span class="ot">triple ::</span> a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> <span class="dt">Triple</span> a b c</a>
-<a class="sourceLine" id="cb2-4" title="4">triple x y z f <span class="fu">=</span> f x y z</a></code></pre></div>
+<a class="sourceLine" id="cb2-4" title="4">triple x y z f <span class="ot">=</span> f x y z</a></code></pre></div>
 <p>To create a triple we simply need to pass the data we want to store into this function, such as <code>x = triple 1 2 3</code>. We can now access the stored values by passing another function into our triple. For example, if we want to turn the church triple into an ADT triple we could write <code>x (\a b c -&gt; (a, b, c))</code> (or more concisely <code>x (,,)</code>), which would return <code>(1, 2, 3)</code>.</p>
 <p>It’s also interesting to see how church encoding relates to pattern matching. For example, the following</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="ot">foo ::</span> <span class="dt">Triple</span> a b c <span class="ot">-&gt;</span> <span class="fu">...</span></a>
-<a class="sourceLine" id="cb3-2" title="2">foo trpl <span class="fu">=</span> trpl (\x y z <span class="ot">-&gt;</span> <span class="fu">...</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="ot">foo ::</span> <span class="dt">Triple</span> a b c <span class="ot">-&gt;</span> <span class="op">...</span></a>
+<a class="sourceLine" id="cb3-2" title="2">foo trpl <span class="ot">=</span> trpl (\x y z <span class="ot">-&gt;</span> <span class="op">...</span>)</a></code></pre></div>
 <p>can be directly translated to the ADT version as</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="ot">foo ::</span> <span class="dt">Triple</span> a b c <span class="ot">-&gt;</span> <span class="fu">...</span></a>
-<a class="sourceLine" id="cb4-2" title="2">foo trpl<span class="fu">@</span>(<span class="dt">Triple</span> x y z) <span class="fu">=</span> <span class="fu">...</span></a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="ot">foo ::</span> <span class="dt">Triple</span> a b c <span class="ot">-&gt;</span> <span class="op">...</span></a>
+<a class="sourceLine" id="cb4-2" title="2">foo trpl<span class="op">@</span>(<span class="dt">Triple</span> x y z) <span class="ot">=</span> <span class="op">...</span></a></code></pre></div>
 <p>This relation to pattern matching is more interesting for types that containt both sums and products, but first lets discuss pure sums. The simplest example is a boolean value <code>data Bool = False | True</code>. This can be encoded as a function that takes multiple argument and chooses between them.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">type</span> <span class="dt">Bool</span> <span class="fu">=</span> <span class="kw">forall</span> r<span class="fu">.</span> r <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r</a>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">type</span> <span class="dt">Bool</span> <span class="ot">=</span> <span class="kw">forall</span> r<span class="op">.</span> r <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r</a>
 <a class="sourceLine" id="cb5-2" title="2"></a>
 <a class="sourceLine" id="cb5-3" title="3"><span class="ot">false ::</span> <span class="dt">Bool</span></a>
-<a class="sourceLine" id="cb5-4" title="4">false x y <span class="fu">=</span> x</a>
+<a class="sourceLine" id="cb5-4" title="4">false x y <span class="ot">=</span> x</a>
 <a class="sourceLine" id="cb5-5" title="5"></a>
 <a class="sourceLine" id="cb5-6" title="6"><span class="ot">true ::</span> <span class="dt">Bool</span></a>
-<a class="sourceLine" id="cb5-7" title="7">true x y <span class="fu">=</span> y</a></code></pre></div>
+<a class="sourceLine" id="cb5-7" title="7">true x y <span class="ot">=</span> y</a></code></pre></div>
 <p>We can now see that we can choose different values based on whether we have a true or false value. To see why this important let’s look at another pattern matching example. The ADT version</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="ot">foo ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="fu">...</span></a>
-<a class="sourceLine" id="cb6-2" title="2">foo <span class="dt">False</span> <span class="fu">=</span> bar</a>
-<a class="sourceLine" id="cb6-3" title="3">foo <span class="dt">True</span> <span class="fu">=</span> baz</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="ot">foo ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="op">...</span></a>
+<a class="sourceLine" id="cb6-2" title="2">foo <span class="dt">False</span> <span class="ot">=</span> bar</a>
+<a class="sourceLine" id="cb6-3" title="3">foo <span class="dt">True</span> <span class="ot">=</span> baz</a></code></pre></div>
 <p>can be translated to the function encoded version as</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1"><span class="ot">foo ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="fu">...</span></a>
-<a class="sourceLine" id="cb7-2" title="2">foo b <span class="fu">=</span> b bar baz</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1"><span class="ot">foo ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="op">...</span></a>
+<a class="sourceLine" id="cb7-2" title="2">foo b <span class="ot">=</span> b bar baz</a></code></pre></div>
 <p>This shows that the choice encoded into the function representation is directly related to the choice made in pattern matching.</p>
 <p>A more interesting case is when we have a of the two previous cases. The typical example would be the Either type. These cases can be encoded as a function that takes multiple functions as arguments, and selectively applies its contained values to those functions. The encoding of Either is thus</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" title="1"><span class="kw">type</span> <span class="dt">Either</span> a b <span class="fu">=</span> <span class="kw">forall</span> r<span class="fu">.</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (b <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</a>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" title="1"><span class="kw">type</span> <span class="dt">Either</span> a b <span class="ot">=</span> <span class="kw">forall</span> r<span class="op">.</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (b <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</a>
 <a class="sourceLine" id="cb8-2" title="2"></a>
 <a class="sourceLine" id="cb8-3" title="3"><span class="ot">left ::</span> a <span class="ot">-&gt;</span> <span class="dt">Either</span> a b</a>
-<a class="sourceLine" id="cb8-4" title="4">left x f g <span class="fu">=</span> f x</a>
+<a class="sourceLine" id="cb8-4" title="4">left x f g <span class="ot">=</span> f x</a>
 <a class="sourceLine" id="cb8-5" title="5"></a>
 <a class="sourceLine" id="cb8-6" title="6"><span class="ot">right ::</span> b <span class="ot">-&gt;</span> <span class="dt">Either</span> a b</a>
-<a class="sourceLine" id="cb8-7" title="7">right y f g <span class="fu">=</span> g y</a></code></pre></div>
+<a class="sourceLine" id="cb8-7" title="7">right y f g <span class="ot">=</span> g y</a></code></pre></div>
 <p>Like the other encodings, this one also has a relation to pattern matching. The following</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" title="1"><span class="ot">foo ::</span> <span class="dt">Either</span> a b <span class="ot">-&gt;</span> <span class="fu">...</span></a>
-<a class="sourceLine" id="cb9-2" title="2">foo e <span class="fu">=</span> e (\x <span class="ot">-&gt;</span> <span class="fu">...</span>) (\y <span class="ot">-&gt;</span> <span class="fu">...</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" title="1"><span class="ot">foo ::</span> <span class="dt">Either</span> a b <span class="ot">-&gt;</span> <span class="op">...</span></a>
+<a class="sourceLine" id="cb9-2" title="2">foo e <span class="ot">=</span> e (\x <span class="ot">-&gt;</span> <span class="op">...</span>) (\y <span class="ot">-&gt;</span> <span class="op">...</span>)</a></code></pre></div>
 <p>can be directly translated to a pattern match as</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" title="1"><span class="ot">foo ::</span> <span class="dt">Either</span> a b <span class="ot">-&gt;</span> <span class="fu">...</span></a>
-<a class="sourceLine" id="cb10-2" title="2">foo e<span class="fu">@</span>(<span class="dt">Left</span> x) <span class="fu">=</span> <span class="fu">...</span></a>
-<a class="sourceLine" id="cb10-3" title="3">foo e<span class="fu">@</span>(<span class="dt">Right</span> y) <span class="fu">=</span> <span class="fu">...</span></a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" title="1"><span class="ot">foo ::</span> <span class="dt">Either</span> a b <span class="ot">-&gt;</span> <span class="op">...</span></a>
+<a class="sourceLine" id="cb10-2" title="2">foo e<span class="op">@</span>(<span class="dt">Left</span> x) <span class="ot">=</span> <span class="op">...</span></a>
+<a class="sourceLine" id="cb10-3" title="3">foo e<span class="op">@</span>(<span class="dt">Right</span> y) <span class="ot">=</span> <span class="op">...</span></a></code></pre></div>
 <p>These methods can be used to encode most ADTs, with one exception that I’ll get to. First, I’d like to demonstrate the power of these techniques with a more complicated example. The following</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" title="1"><span class="kw">data</span> <span class="dt">Foo</span> a b c <span class="fu">=</span> <span class="dt">Foo</span> a b c</a>
-<a class="sourceLine" id="cb11-2" title="2">               <span class="fu">|</span> <span class="dt">Bar</span> a b</a>
-<a class="sourceLine" id="cb11-3" title="3">               <span class="fu">|</span> <span class="dt">Baz</span> a</a>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" title="1"><span class="kw">data</span> <span class="dt">Foo</span> a b c <span class="ot">=</span> <span class="dt">Foo</span> a b c</a>
+<a class="sourceLine" id="cb11-2" title="2">               <span class="op">|</span> <span class="dt">Bar</span> a b</a>
+<a class="sourceLine" id="cb11-3" title="3">               <span class="op">|</span> <span class="dt">Baz</span> a</a>
 <a class="sourceLine" id="cb11-4" title="4"></a>
 <a class="sourceLine" id="cb11-5" title="5"><span class="fu">sum</span><span class="ot"> ::</span> <span class="dt">Num</span> a <span class="ot">=&gt;</span> <span class="dt">Foo</span> a a a <span class="ot">-&gt;</span> a</a>
-<a class="sourceLine" id="cb11-6" title="6"><span class="fu">sum</span> (<span class="dt">Foo</span> x y z) <span class="fu">=</span> x <span class="fu">+</span> y <span class="fu">+</span> z</a>
-<a class="sourceLine" id="cb11-7" title="7"><span class="fu">sum</span> (<span class="dt">Bar</span> x y) <span class="fu">=</span> x <span class="fu">+</span> y</a>
-<a class="sourceLine" id="cb11-8" title="8"><span class="fu">sum</span> (<span class="dt">Baz</span> x) <span class="fu">=</span> x</a></code></pre></div>
+<a class="sourceLine" id="cb11-6" title="6"><span class="fu">sum</span> (<span class="dt">Foo</span> x y z) <span class="ot">=</span> x <span class="op">+</span> y <span class="op">+</span> z</a>
+<a class="sourceLine" id="cb11-7" title="7"><span class="fu">sum</span> (<span class="dt">Bar</span> x y) <span class="ot">=</span> x <span class="op">+</span> y</a>
+<a class="sourceLine" id="cb11-8" title="8"><span class="fu">sum</span> (<span class="dt">Baz</span> x) <span class="ot">=</span> x</a></code></pre></div>
 <p>can be translated to</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" title="1"><span class="kw">type</span> <span class="dt">Foo</span> a b c <span class="fu">=</span> <span class="kw">forall</span> r<span class="fu">.</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</a>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" title="1"><span class="kw">type</span> <span class="dt">Foo</span> a b c <span class="ot">=</span> <span class="kw">forall</span> r<span class="op">.</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</a>
 <a class="sourceLine" id="cb12-2" title="2"></a>
 <a class="sourceLine" id="cb12-3" title="3"><span class="ot">foo ::</span> a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> <span class="dt">Foo</span> a b c</a>
-<a class="sourceLine" id="cb12-4" title="4">foo x y z f g h <span class="fu">=</span> f x y z</a>
+<a class="sourceLine" id="cb12-4" title="4">foo x y z f g h <span class="ot">=</span> f x y z</a>
 <a class="sourceLine" id="cb12-5" title="5"></a>
 <a class="sourceLine" id="cb12-6" title="6"><span class="ot">bar ::</span> a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> <span class="dt">Foo</span> a b c</a>
-<a class="sourceLine" id="cb12-7" title="7">bar x y f g h <span class="fu">=</span> g x y</a>
+<a class="sourceLine" id="cb12-7" title="7">bar x y f g h <span class="ot">=</span> g x y</a>
 <a class="sourceLine" id="cb12-8" title="8"></a>
 <a class="sourceLine" id="cb12-9" title="9"><span class="ot">baz ::</span> a <span class="ot">-&gt;</span> <span class="dt">Foo</span> a b c</a>
-<a class="sourceLine" id="cb12-10" title="10">baz x f g h <span class="fu">=</span> h x</a>
+<a class="sourceLine" id="cb12-10" title="10">baz x f g h <span class="ot">=</span> h x</a>
 <a class="sourceLine" id="cb12-11" title="11"></a>
 <a class="sourceLine" id="cb12-12" title="12"><span class="fu">sum</span><span class="ot"> ::</span> <span class="dt">Num</span> a <span class="ot">=&gt;</span> <span class="dt">Foo</span> a a a <span class="ot">-&gt;</span> a</a>
-<a class="sourceLine" id="cb12-13" title="13"><span class="fu">sum</span> f <span class="fu">=</span> f (\x y z <span class="ot">-&gt;</span> x <span class="fu">+</span> y <span class="fu">+</span> z) (<span class="fu">+</span>) <span class="fu">id</span></a></code></pre></div>
+<a class="sourceLine" id="cb12-13" title="13"><span class="fu">sum</span> f <span class="ot">=</span> f (\x y z <span class="ot">-&gt;</span> x <span class="op">+</span> y <span class="op">+</span> z) (<span class="op">+</span>) <span class="fu">id</span></a></code></pre></div>
 <p>The area where church encoding ADTs becomes problematic is when encoding recursively defined ADTs. The typical example of this is the List type, where <code>data List a = Cons a (List a) | Nil</code>. The naive way to encode this would be as</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" title="1"><span class="kw">type</span> <span class="dt">List</span> a <span class="fu">=</span> <span class="kw">forall</span> b<span class="fu">.</span> (a <span class="ot">-&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> b</a>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" title="1"><span class="kw">type</span> <span class="dt">List</span> a <span class="ot">=</span> <span class="kw">forall</span> b<span class="op">.</span> (a <span class="ot">-&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> b</a>
 <a class="sourceLine" id="cb13-2" title="2"></a>
 <a class="sourceLine" id="cb13-3" title="3"><span class="ot">cons ::</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a</a>
-<a class="sourceLine" id="cb13-4" title="4">cons x xs f y <span class="fu">=</span> f x xs</a>
+<a class="sourceLine" id="cb13-4" title="4">cons x xs f y <span class="ot">=</span> f x xs</a>
 <a class="sourceLine" id="cb13-5" title="5"></a>
 <a class="sourceLine" id="cb13-6" title="6"><span class="ot">nil ::</span> <span class="dt">List</span> a</a>
-<a class="sourceLine" id="cb13-7" title="7">nil f y <span class="fu">=</span> y</a></code></pre></div>
+<a class="sourceLine" id="cb13-7" title="7">nil f y <span class="ot">=</span> y</a></code></pre></div>
 <p>However, recursive type aliases are not allowed in Haskell. One way to overcome this issue by using a newtype declaration</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb14-1" title="1"><span class="kw">newtype</span> <span class="dt">List</span> a <span class="fu">=</span> <span class="dt">List</span> {<span class="ot"> runList ::</span> <span class="kw">forall</span> r<span class="fu">.</span> (a <span class="ot">-&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r }</a>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb14-1" title="1"><span class="kw">newtype</span> <span class="dt">List</span> a <span class="ot">=</span> <span class="dt">List</span> {<span class="ot"> runList ::</span> <span class="kw">forall</span> r<span class="op">.</span> (a <span class="ot">-&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r }</a>
 <a class="sourceLine" id="cb14-2" title="2"></a>
 <a class="sourceLine" id="cb14-3" title="3"><span class="ot">cons ::</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a</a>
-<a class="sourceLine" id="cb14-4" title="4">cons x xs <span class="fu">=</span> <span class="dt">List</span> <span class="fu">$</span> \f y <span class="ot">-&gt;</span> f x xs</a>
+<a class="sourceLine" id="cb14-4" title="4">cons x xs <span class="ot">=</span> <span class="dt">List</span> <span class="op">$</span> \f y <span class="ot">-&gt;</span> f x xs</a>
 <a class="sourceLine" id="cb14-5" title="5"></a>
 <a class="sourceLine" id="cb14-6" title="6"><span class="ot">nil ::</span> <span class="dt">List</span> a</a>
-<a class="sourceLine" id="cb14-7" title="7">nil <span class="fu">=</span> <span class="dt">List</span> <span class="fu">$</span> \f y <span class="ot">-&gt;</span> y</a></code></pre></div>
+<a class="sourceLine" id="cb14-7" title="7">nil <span class="ot">=</span> <span class="dt">List</span> <span class="op">$</span> \f y <span class="ot">-&gt;</span> y</a></code></pre></div>
 <p>We can then apply these lists using the <code>runList</code> function. Here’s an example function</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb15-1" title="1"><span class="ot">stringifyList ::</span> <span class="dt">Show</span> a <span class="ot">=&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> <span class="dt">String</span></a>
-<a class="sourceLine" id="cb15-2" title="2">stringifyList xs <span class="fu">=</span> runList xs (\y ys <span class="ot">-&gt;</span> (<span class="fu">show</span> y) <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> (stringifyList ys)) <span class="st">&quot;&quot;</span></a></code></pre></div>
-<p><code>stringifyList (cons 1 (cons 2 (cons 3 nil)))</code> then produces the string <code>&quot;1 2 3 &quot;</code>.</p>
+<a class="sourceLine" id="cb15-2" title="2">stringifyList xs <span class="ot">=</span> runList xs (\y ys <span class="ot">-&gt;</span> (<span class="fu">show</span> y) <span class="op">++</span> <span class="st">&quot; &quot;</span> <span class="op">++</span> (stringifyList ys)) <span class="st">&quot;&quot;</span></a></code></pre></div>
+<p><code>stringifyList (cons 1 (cons 2 (cons 3 nil)))</code> then produces the string <code>"1 2 3 "</code>.</p>
 <p>Note that this List encoding isn’t strictly a church encoding. This is because it is nonrepresentable in typed lambda calculus, due to the use of recursive types. A correct way to church encode List is as a fold.</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb16-1" title="1"><span class="kw">type</span> <span class="dt">List</span> a <span class="fu">=</span> <span class="kw">forall</span> r<span class="fu">.</span> r <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</a>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb16-1" title="1"><span class="kw">type</span> <span class="dt">List</span> a <span class="ot">=</span> <span class="kw">forall</span> r<span class="op">.</span> r <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</a>
 <a class="sourceLine" id="cb16-2" title="2"></a>
 <a class="sourceLine" id="cb16-3" title="3"><span class="ot">nil ::</span> <span class="dt">List</span> a</a>
-<a class="sourceLine" id="cb16-4" title="4">nil x _ <span class="fu">=</span> x</a>
+<a class="sourceLine" id="cb16-4" title="4">nil x _ <span class="ot">=</span> x</a>
 <a class="sourceLine" id="cb16-5" title="5"></a>
 <a class="sourceLine" id="cb16-6" title="6"><span class="ot">cons ::</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a</a>
-<a class="sourceLine" id="cb16-7" title="7">cons x xs y f <span class="fu">=</span> f x (xs y f)</a></code></pre></div>
+<a class="sourceLine" id="cb16-7" title="7">cons x xs y f <span class="ot">=</span> f x (xs y f)</a></code></pre></div>
 <p>Such an encoded list <code>xs</code> can be converted into a regular list by running <code>xs [] (:)</code>.</p>
 <p>We can also encode the Tree type as a fold.</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb17-1" title="1"><span class="co">{-</span></a>
@@ -136,7 +136,7 @@
 <a class="sourceLine" id="cb17-3" title="3"><span class="co">            | Branch (Tree a) a (Tree a)</span></a>
 <a class="sourceLine" id="cb17-4" title="4"><span class="co">-}</span></a>
 <a class="sourceLine" id="cb17-5" title="5"></a>
-<a class="sourceLine" id="cb17-6" title="6"><span class="kw">type</span> <span class="dt">Tree</span> a <span class="fu">=</span> <span class="kw">forall</span> r<span class="fu">.</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</a></code></pre></div>
+<a class="sourceLine" id="cb17-6" title="6"><span class="kw">type</span> <span class="dt">Tree</span> a <span class="ot">=</span> <span class="kw">forall</span> r<span class="op">.</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</a></code></pre></div>
 <p>An encoded tree <code>t</code> can be converted to an ADT by running <code>t Leaf Branch</code>.</p>
 <p>This shows that a general technique for encoding recursive ADTs is to replace the recursive arguments with the church encoded function’s return type (which is <code>r</code> in the previous examples).</p>
 
