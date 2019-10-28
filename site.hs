@@ -13,20 +13,26 @@ pandocMathCompiler =
         newExtensions =  defaultExtensions <> mathExtensions
         writerOptions = defaultHakyllWriterOptions {
                           writerExtensions = newExtensions,
-                          writerHTMLMathMethod = MathJax ""
+                          writerHTMLMathMethod = MathJax "/MathJax/"
                         }
     in pandocCompilerWith defaultHakyllReaderOptions writerOptions
 
 
 main :: IO ()
 main = hakyll $ do
-    match "images/*" $ do
+    match "MathJax/**" $ do
         route   idRoute
         compile copyFileCompiler
 
-    match "papers/*" $ do
+    match "images/**" $ do
         route   idRoute
         compile copyFileCompiler
+
+    match "papers/*.pdf" $ do
+        route   idRoute
+        compile copyFileCompiler
+
+    match "papers/*.meta" $ compile $ getResourceBody >>= relativizeUrls
 
     match "css/*" $ do
         route   idRoute
@@ -34,12 +40,23 @@ main = hakyll $ do
 
     match (fromList ["about.markdown"
                     , "contact.markdown"
-                    , "papers.markdown"
                     , "404.markdown"]) $ do
         route   $ setExtension "html"
         compile $ pandocMathCompiler
             >>= loadAndApplyTemplate "templates/default.html" defaultContext
             >>= relativizeUrls
+
+    match "papers.html" $ do
+        route idRoute
+        compile $ do
+            papers <- recentFirst =<< loadAll "papers/*.meta"
+            let papersCtx =
+                    listField "papers" paperCtx (return papers) `mappend`
+                    defaultContext
+            getResourceBody
+                >>= applyAsTemplate papersCtx
+                >>= loadAndApplyTemplate "templates/default.html" papersCtx
+                >>= relativizeUrls
 
     match "posts/*" $ do
         route $ setExtension "html"
@@ -53,7 +70,7 @@ main = hakyll $ do
         compile $ do
             posts <- recentFirst =<< loadAll "posts/*"
             let archiveCtx =
-                    listField "posts" postCtx (return posts) `mappend`
+                    listField "posts" paperCtx (return posts) `mappend`
                     constField "title" "Archives"            `mappend`
                     defaultContext
 
@@ -66,8 +83,10 @@ main = hakyll $ do
     match "index.html" $ do
         route idRoute
         compile $ do
+            papers <- recentFirst =<< loadAll "papers/*.meta"
             posts <- recentFirst =<< loadAll "posts/*"
             let indexCtx =
+                    listField "papers" paperCtx (return papers) `mappend`
                     listField "posts" postCtx (return posts) `mappend`
                     constField "title" "Home"                `mappend`
                     defaultContext
@@ -81,6 +100,11 @@ main = hakyll $ do
 
 
 --------------------------------------------------------------------------------
+paperCtx :: Context String
+paperCtx =
+    dateField "date" "%B %e, %Y" `mappend`
+    defaultContext
+
 postCtx :: Context String
 postCtx =
     dateField "date" "%B %e, %Y" `mappend`
