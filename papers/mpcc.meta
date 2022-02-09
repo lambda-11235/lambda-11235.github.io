@@ -1,0 +1,9 @@
+---
+title: Model Predictive Congestion Control for TCP Endpoints
+pdf: /papers/mpcc.pdf
+desc: Introduces a congestion control algorithm that uses model
+    predictive control (MPC).
+publisher: arXiv.org
+published: 2020-02-22
+author: Taran Lynn, Dipak Ghosal, and Nathan Hanford
+---

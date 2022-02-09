@@ -1,0 +1,9 @@
+---
+title: "TCP D*: A Low Latency First Congestion Control Algorithm"
+pdf: "/papers/tcp_ds.pdf"
+desc: Introduces a CWND based congestion control algorithm that uses a
+    BBR like probing strategy.
+publisher: arXiv.org
+published: 2020-12-29
+author: Taran Lynn and Dipak Ghosal
+---
