@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Taran Lynn's Site - Probing the Response</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <script type="text/javascript" src="../MathJax/es5/tex-chtml.js"></script>
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../"><img src="../images/lambda.png" /></a>
+            </div>
+
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../contact.html">Contact</a>
+                <a href="../archive.html">Archive</a>
+                <a href="../papers.html">Papers</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <div id="title">
+                Probing the Response
+            </div>
+
+            <div align="center">
+                <table width="50%">
+                    <tr><td>
+                        <div class="info">
+    Posted on October 25, 2019
+    
+        by Taran Lynn
+    
+</div>
+
+<p>In control theory we manipulate the control according to a control law to match
+the response to a setpoint value.
+However, what if the parameters for the control law require that we know the
+minimum and maximum values the response can achieve, and what if this is not
+known a priori?
+If it is not dangerous to set the response to its minimum and maximum values,
+then one solution is to probe the response.
+However, one issue I faced when I was recently developing a control law was that
+it did not handle discontinuous changes in the setpoint well.
+Since I still needed the minimum and maximum response values, the most obvious
+solution was to develop a continuous probing function.
+This function would have to be cyclic, spend most of its time at the target
+value <span class="math inline">\(r_{target}\)</span>, and occasionally probe for the minimum <span class="math inline">\(r_{min}\)</span> and maximum
+<span class="math inline">\(r_{max}\)</span> response values.
+The first step is to develop a function that peaks at these values.
+Such a function is</p>
+<p><span class="math display">\[f(x) = r_{target} + \frac{(1 + b) r_{max} - r_{target}}{(a (1 - x))^2 + 1} + \frac{(1 - c) r_{min} - r_{target}}{(a x)^2 + 1}\]</span></p>
+<p><span class="math inline">\(a\)</span> controls how sharp the probes are, and <span class="math inline">\(b\)</span> and <span class="math inline">\(c\)</span> controls how far we probe
+past the <strong>known</strong> minimum and maximum values.
+Note that if <span class="math inline">\(b = 0\)</span> or <span class="math inline">\(c = 0\)</span> then the minimum or maximum estimations will
+never change.
+This function looks like</p>
+<p><img src="../images/2019-10-25/f_only.png" /></p>
+<p>Now we want to add a periodic component to this function to allow it to
+continually reestimate the minimum and maximum responses.
+To do this we can apply a sinusoidal function first, and then pass this to the
+previous function.
+The resultant function is
+<span class="math display">\[g(x) = f \left( \frac{\sin(\pi x - \pi/2) + 1}{2} \right)\]</span></p>
+<p>An example of the resulting function’s operation with continuous estimation of
+min/max responses is shown in the following graph.</p>
+<p><img src="../images/2019-10-25/a_single.png" /></p>
+<p>The following is a graph showing how the function behaves as <span class="math inline">\(a\)</span> is increased.
+Blue indicates low <span class="math inline">\(a\)</span> values and red indicates high <span class="math inline">\(a\)</span> values.</p>
+<p><img src="../images/2019-10-25/a_vary.png" /></p>
+<p>As we can see, the larger <span class="math inline">\(a\)</span> is the more time we spend on our target response,
+and the less time we spend probing.
+This is good because we want to spend most of our time at the target response.
+However, if the probe is to steep and does not last long enough, then the
+control law will not be able to reach the min/max response, thus defeating our
+goal of developing such a function in the first place.
+Thus, the value of <span class="math inline">\(a\)</span> must be chosen wisely, and depends heavily on the control
+law used.
+<span class="math inline">\(b\)</span> and <span class="math inline">\(c\)</span> also depend heavily on the control law.
+In general they should be set to make <span class="math inline">\(r_{max}\)</span> and <span class="math inline">\(r_{min}\)</span> as close to the
+values they’re expected to have, which can be gleamed by studying the model of
+the system.</p>
+
+                    </td></tr>
+                </table>
+            </div>
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

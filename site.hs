@@ -4,6 +4,10 @@ import Data.Monoid (mappend)
 import Hakyll
 import Text.Pandoc.Options
 
+config :: Configuration
+config = defaultConfiguration { destinationDirectory = "docs"
+                              }
+
 
 pandocMathCompiler =
     let mathExtensions = extensionsFromList [Ext_tex_math_dollars
@@ -19,7 +23,7 @@ pandocMathCompiler =
 
 
 main :: IO ()
-main = hakyll $ do
+main = hakyllWith config $ do
     match "MathJax/**" $ do
         route   idRoute
         compile copyFileCompiler

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Taran Lynn's Site - Functions as Monads and Applicative Functors</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <script type="text/javascript" src="../MathJax/es5/tex-chtml.js"></script>
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../"><img src="../images/lambda.png" /></a>
+            </div>
+
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../contact.html">Contact</a>
+                <a href="../archive.html">Archive</a>
+                <a href="../papers.html">Papers</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <div id="title">
+                Functions as Monads and Applicative Functors
+            </div>
+
+            <div align="center">
+                <table width="50%">
+                    <tr><td>
+                        <div class="info">
+    Posted on March 27, 2016
+    
+        by Taran Lynn
+    
+</div>
+
+<p><span style="color: red">
+This is not a tutorial, it is just some of my thoughts. I expect the reader to
+be familiar enough with monads to recognize if I’ve made a mistake. Please
+contact me if you see any errors in this post.
+</span></p>
+<h1 id="functions-are-monads">Functions are Monads</h1>
+<p>Functions are monads, which also implies that they are applicative
+functors. This can lead to some interesting computational models. Functions
+implement the Monad class as</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Monad</span> ((<span class="ot">-&gt;</span>) r) <span class="kw">where</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  return ::</span> t <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> t)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span> <span class="ot">=</span> <span class="fu">const</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ot">  (&gt;&gt;=) ::</span> (r <span class="ot">-&gt;</span> t) <span class="ot">-&gt;</span> (t <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> s)) <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> s)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  f <span class="op">&gt;&gt;=</span> g <span class="ot">=</span> \r <span class="ot">-&gt;</span> g (f r) r</span></code></pre></div>
+<p>Where <code>((-&gt;) r)</code> is similar in form to <code>Map a</code>. Both of these are defined to be
+monadic over their second type argument. This means that <code>(r -&gt; t)</code> is monadic
+over <code>t</code>, meaning the types for <code>return</code> and bind (<code>(&gt;&gt;=)</code>) have to be <code>t -&gt; (r -&gt; t)</code> and <code>(r -&gt; t) -&gt; (t -&gt; (r -&gt; s)) -&gt; (r -&gt; s)</code>, respectively. The first
+signature is obviously the same as <code>const</code>, hence this is what <code>return</code> is
+defined as. The operation of bind is, however, far more interesting. Consider</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>foo <span class="ot">=</span> <span class="kw">do</span> x <span class="ot">&lt;-</span> <span class="fu">id</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>         y <span class="ot">&lt;-</span> <span class="fu">sqrt</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>         <span class="fu">return</span> <span class="op">$</span> x <span class="op">+</span> y</span></code></pre></div>
+<p>If we use this function we find that <code>foo 4</code> is <code>6.0</code>, and <code>foo 9</code> is <code>12.0</code>. On
+closer inspection it appears that <code>foo</code> is a function that passes its argument
+to <code>id</code> and <code>sqrt</code> and adds the two results. Or, in code</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>foo r <span class="ot">=</span> (<span class="fu">id</span> r) <span class="op">+</span> (<span class="fu">sqrt</span> r)</span></code></pre></div>
+<p>To find out why this is let’s do some transformation on <code>foo</code>.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>foo <span class="ot">=</span> <span class="kw">do</span> x <span class="ot">&lt;-</span> <span class="fu">id</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>         y <span class="ot">&lt;-</span> <span class="fu">sqrt</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>         <span class="fu">return</span> <span class="op">$</span> x <span class="op">+</span> y</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="ot">=</span> <span class="fu">id</span> <span class="op">&gt;&gt;=</span> (\x <span class="ot">-&gt;</span> <span class="fu">sqrt</span> <span class="op">&gt;&gt;=</span> (\y <span class="ot">-&gt;</span> x <span class="op">+</span> y))</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="ot">=</span> \r <span class="ot">-&gt;</span> (\x <span class="ot">-&gt;</span> (\r' <span class="ot">-&gt;</span> (\y <span class="ot">-&gt;</span> x <span class="op">+</span> y) (<span class="fu">sqrt</span> r'))) (<span class="fu">id</span> r) r</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="ot">=</span> \r <span class="ot">-&gt;</span> (\x r' <span class="ot">-&gt;</span> (\y <span class="ot">-&gt;</span> x <span class="op">+</span> y) (<span class="fu">sqrt</span> r'))) (<span class="fu">id</span> r) r</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="ot">=</span> \r <span class="ot">-&gt;</span> ((\y <span class="ot">-&gt;</span> (<span class="fu">id</span> r) <span class="op">+</span> y) (<span class="fu">sqrt</span> r))</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="ot">=</span> \r <span class="ot">-&gt;</span> (<span class="fu">id</span> r) <span class="op">+</span> (<span class="fu">sqrt</span> r)</span></code></pre></div>
+<p>In general, we find that if we replace <code>id</code> and <code>sqrt</code> with any functions <code>f</code>
+and <code>g</code>, then</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">do</span> x <span class="ot">&lt;-</span> f</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>   y <span class="ot">&lt;-</span> g</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>   <span class="fu">return</span> <span class="op">$</span> h x y</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="ot">=</span> \r <span class="ot">-&gt;</span> h (f r) (h r)</span></code></pre></div>
+<p>Something even more interesting happens when we look at <code>sqrt &gt;&gt;= (+)</code>. This
+function is exactly the same as <code>foo</code>. If we analyze it we see that it expands
+to</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">do</span> x <span class="ot">&lt;-</span> <span class="fu">sqrt</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>   y <span class="ot">&lt;-</span> (<span class="op">+</span>) x</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>   <span class="fu">return</span> y</span></code></pre></div>
+<p>Notice that <code>y</code> will expand to <code>(+) x r</code>, and <code>x</code> will expand <code>sqrt r</code>, which
+when combined gives</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>(<span class="op">+</span>) (<span class="fu">sqrt</span> r) r <span class="ot">=</span> (<span class="op">+</span>) (<span class="fu">sqrt</span> r) (<span class="fu">id</span> r) <span class="ot">=</span> (<span class="fu">sqrt</span> r) <span class="op">+</span> (<span class="fu">id</span> r)</span></code></pre></div>
+<h2 id="a-practical-example">A Practical Example</h2>
+<p>One example of the usefulness of this is</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Customer</span> <span class="ot">=</span> <span class="dt">Customer</span> {<span class="ot"> getName ::</span> <span class="dt">String</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>                         ,<span class="ot"> getEmail ::</span> <span class="dt">EmailAddr</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>                         ,<span class="ot"> getAccountNumber ::</span> <span class="dt">Integer</span> }</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="ot">custComp ::</span> <span class="dt">Customer</span> <span class="ot">-&gt;</span> a</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>custComp <span class="ot">=</span> <span class="kw">do</span> name <span class="ot">&lt;-</span> getName</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>              email <span class="ot">&lt;-</span> getEmail</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>              accNum <span class="ot">&lt;-</span> getAccountNumber</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>              <span class="fu">return</span> <span class="op">$</span> someComputation name email accNum</span></code></pre></div>
+<p>Without using do notation, this would instead be</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ot">custComp ::</span> <span class="dt">Customer</span> <span class="ot">-&gt;</span> a</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>custComp cust <span class="ot">=</span> someComputation (getName cust) (getEmail cust) (getAccountNumber cust)</span></code></pre></div>
+<h1 id="functions-as-applicative-functors">Functions as Applicative Functors</h1>
+<p>I find that using the fact that functions are applicative functors to also be
+useful. First let us look at the trivial implementation of Functor for
+functions.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Functor</span> ((<span class="ot">-&gt;</span>) r) <span class="kw">where</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  fmap ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> a) <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> b)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmap</span> <span class="ot">=</span> (<span class="op">.</span>)</span></code></pre></div>
+<p>This isn’t particularly interesting until we consider the applicative
+implementation.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Applicative</span> ((<span class="ot">-&gt;</span>) r) <span class="kw">where</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> <span class="ot">=</span> <span class="fu">const</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  f <span class="op">&lt;*&gt;</span> g <span class="ot">=</span> \x <span class="ot">-&gt;</span> (f x) (g x)</span></code></pre></div>
+<p>The function <code>foo</code> can now be written as <code>(+) &lt;$&gt; id &lt;*&gt; sqrt</code>. The practical
+example can also be written as</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ot">custComp ::</span> <span class="dt">Customer</span> <span class="ot">-&gt;</span> a</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>custComp <span class="ot">=</span> someComputation <span class="op">&lt;$&gt;</span> getName <span class="op">&lt;*&gt;</span> getEmail <span class="op">&lt;*&gt;</span> getAccountNumber</span></code></pre></div>
+<p>I personally find this preferable to the two other ways of writing <code>custComp</code>,
+as it is both concise and informative.</p>
+<h1 id="why-does-this-matter">Why Does This Matter?</h1>
+<p>Using functions in this way allows us to write algorithms that use the results
+of applying the same argument to multiple functions in a clear, concise way.</p>
+<p><img src="../images/function_monad.svg" alt="Drawing" style="width: 400px;" /></p>
+<p>As shown by the above image, we can write algorithms that are only concerned
+with the outputs of <code>f</code>, <code>g</code>, and <code>h</code>, but still produces a function from <code>x</code> to
+some result.</p>
+
+                    </td></tr>
+                </table>
+            </div>
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

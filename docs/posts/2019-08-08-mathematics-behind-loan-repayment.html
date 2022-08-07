@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Taran Lynn's Site - Mathematics Behind Loan Repayment</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <script type="text/javascript" src="../MathJax/es5/tex-chtml.js"></script>
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../"><img src="../images/lambda.png" /></a>
+            </div>
+
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../contact.html">Contact</a>
+                <a href="../archive.html">Archive</a>
+                <a href="../papers.html">Papers</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <div id="title">
+                Mathematics Behind Loan Repayment
+            </div>
+
+            <div align="center">
+                <table width="50%">
+                    <tr><td>
+                        <div class="info">
+    Posted on August  8, 2019
+    
+        by Taran Lynn
+    
+</div>
+
+<p>Textbooks often discuss the formula for the amount owed using compound interest,
+<span class="math inline">\(P \left(1 + \frac{r}{n}\right)^{nt}\)</span>.
+This is usually done to showoff continuous compound interest, where <span class="math inline">\(n\)</span> goes to
+infinity, and demonstrate a potential use of Euler’s number in the resulting
+equation <span class="math inline">\(Pe^t\)</span>.
+However, in all practicality this isn’t useful for finances.
+This is because when considering finances one would like to include payments in
+their calculations.
+I have yet to see a textbook that covers how a payment plan affects the formula.
+As such I will discuss the math behind it in this post.</p>
+<p>First let’s describe what each variable represents.
+<span class="math inline">\(P\)</span> is the principal, <span class="math inline">\(r\)</span> is interest rate, <span class="math inline">\(n\)</span> is the number of times the
+interest is compounded per year, and <span class="math inline">\(t\)</span> is the number of years the debt is left
+unpaid.
+Now consider what happens if one pays an amount <span class="math inline">\(p\)</span> every time the interest is
+compounded, and assume it’s paid after compounding is taken into account.
+To see what happens we’ll let <span class="math inline">\(D_k\)</span> be the debt owed on the <span class="math inline">\(k\)</span>th compounding
+period.
+To make the formulas more manageable we’ll also define <span class="math inline">\(a \equiv \left(1 - \frac{r}{n}\right)\)</span>.
+From this we can derive the formula
+<span class="math display">\[
+\begin{align*}
+D_0 &amp;= P\\
+D_{k+1} &amp;= aD_k - p
+\end{align*}
+\]</span>
+Doing some series gymnastics we get
+<span class="math display">\[D_k = a^k P - p \sum_{i = 0}^{k - 1} a^i\]</span>
+Using the exponential series this simplifies to
+<span class="math display">\[D_k = a^k P - p \frac{1 - a^k}{1 - a}\]</span></p>
+<p>When graphed this curve will look like the following, assuming minimum payments
+are being made (i.e. the amount that needs to be paid so as not to go further
+into debt).</p>
+<figure>
+<img src="../images/2019-08-08-1.svg" alt="A downward curve representing time vs amount owed." />
+<figcaption aria-hidden="true">A downward curve representing time vs amount owed.</figcaption>
+</figure>
+<p>This is much different from the big, scary exponential curve we see with the
+equation that does not take payments into account.
+It’s interesting to note the slope of the graph.
+As time goes on the slope becomes more negative, which indicates that the debt
+is being payed off faster.
+This makes sense, as not as much is compounded on each cycle, and thus the
+payments have more of an impact.</p>
+<p>While knowing how debt changes over time is all well in good, a more pressing
+question for most people is “how long will it take to pay off my debt?”
+If we substitute 0 for <span class="math inline">\(D_k\)</span>, <span class="math inline">\(nt\)</span> (the number of compound cycles in <span class="math inline">\(t\)</span> years)
+for <span class="math inline">\(k\)</span>, and solve for <span class="math inline">\(t\)</span>, then we can get the approximate number of years it
+will take to pay off the debt.
+The resulting formula is
+<span class="math display">\[t = -\frac{\log_a \left( (1 - a) \frac{P}{p} + 1 \right)}{n}\]</span>
+That formula is not intuitive to look at, so let’s plot a graph.</p>
+<figure>
+<img src="../images/2019-08-08-2.svg" alt="Exponential decay in time to payoff versus amount paid per cycle." />
+<figcaption aria-hidden="true">Exponential decay in time to payoff versus amount paid per cycle.</figcaption>
+</figure>
+<p>This graph demonstrates why the advise to “pay a little bit more than the
+minimum” is well deserved.
+We can see that as we approach the minimum payment the time to payoff the debt
+approaches infinity, that is to say it will never be paid off.
+However, just a tiny increase in payment dramatically shortens the time it takes
+to payoff the debt.
+On the other hand, paying larger and larger sums beyond that gives diminishing
+returns.
+As a general rule of thumb, we would ideally pay twice the minimum payment.
+Finally, if it wasn’t obvious, paying off the debt faster saves one more money
+(the total amount paid by the time all debt is cleared is <span class="math inline">\(ntp\)</span>).</p>
+<h2 id="the-more-complex-case">The More Complex Case</h2>
+<p>I’ll briefly discuss a more complex payment plan.
+Consider what well happen if the payment period and compounding period are not
+the same, such as when one pays every month on a loan that is compounded daily.
+For this case we need to introduce a new variable <span class="math inline">\(m\)</span>, which is how many times a
+year payment is made.
+This results in the original equations becoming
+<span class="math display">\[
+\begin{align*}
+D_0 &amp;= P\\
+D_{k+1} &amp;= a^{n/m} D_k - p
+\end{align*}
+\]</span>
+I’ll spare you the messy details, but the final resulting equations are
+<span class="math display">\[
+\begin{align*}
+D_k &amp;= a^k P - p \frac{1 - a^k}{1 - a^{n/m}}\\
+t &amp;= -\frac{\log_a \left( (1 - a^{n/m}) \frac{P}{p} + 1 \right)}{n}
+\end{align*}
+\]</span>
+This results in much the same behavior as for the simple case.</p>
+<h2 id="personal-plug-my-open-source-program">Personal Plug: My Open Source Program</h2>
+<p>Using these formulas I’ve created an open source program to help manage and
+analyze debt.
+It’s called debtTools and is available on
+<a href="https://github.com/lambda-11235/debtTools">GitHub</a>.
+The repo also contains a paper with the mathematical derivations for the above
+formulas.</p>
+
+                    </td></tr>
+                </table>
+            </div>
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

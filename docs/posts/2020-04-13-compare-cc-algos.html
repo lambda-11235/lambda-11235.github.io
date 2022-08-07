@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Taran Lynn's Site - Why Reacting to Latency is Important for Congestion Control</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <script type="text/javascript" src="../MathJax/es5/tex-chtml.js"></script>
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../"><img src="../images/lambda.png" /></a>
+            </div>
+
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../contact.html">Contact</a>
+                <a href="../archive.html">Archive</a>
+                <a href="../papers.html">Papers</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <div id="title">
+                Why Reacting to Latency is Important for Congestion Control
+            </div>
+
+            <div align="center">
+                <table width="50%">
+                    <tr><td>
+                        <div class="info">
+    Posted on April 13, 2020
+    
+        by Taran Lynn
+    
+</div>
+
+<p>Recently I was running network tests at home.
+My setup include my desktop and laptop connected via a 1 Gbps link via
+a switch.
+I wanted to emulate a network which had an infinite buffer at it’s bottleneck.
+To achieve this I setup an iperf3 server on my laptop, and then
+configured NetEm with the following parameters on my desktop.</p>
+<pre><code>&gt; sysctl net.core.rmem_default=2147483647
+&gt; sysctl net.core.rmem_max=2147483647
+
+&gt; sysctl net.core.wmem_default=2147483647
+&gt; sysctl net.core.wmem_max=2147483647
+
+&gt; sysctl net.ipv4.tcp_rmem=&quot;2147483647 2147483647 2147483647&quot;
+&gt; sysctl net.ipv4.tcp_wmem=&quot;2147483647 2147483647 2147483647&quot;
+
+&gt; run tc qdisc replace dev DEV root netem delay 30ms limit 115</code></pre>
+<p>Here DEV corresponds to my desktop’s network interface.
+Next I ran the following test for TCP Reno, Cubic, Vegas, and BBR.
+On the laptop side</p>
+<pre><code>&gt; iperf3 -s -1 --json &gt; $CC_server.json</code></pre>
+<p>On the desktop side</p>
+<pre><code>&gt; sudo sysctl net.ipv4.tcp_congestion_control=$CC
+&gt; iperf3 -c $LAPTOP -t 120 --json -P2 &gt; $CC_client.json</code></pre>
+<p>Note that I’m using two flows here.
+With one flow the algorithm’s would stop increasing before reaching a
+congested state.
+I’m not sure why this is, but nevertheless with two flows we get more
+interesting results.
+The data can be found <a href="../files/2020-04-13/data">here</a>.</p>
+<h2 id="analyzing-the-data">Analyzing the Data</h2>
+<p>To analyze the data I used a Python
+<a href="../files/2020-04-13/plot.py">script</a> to plot the send CWND, throughput,
+and RTT for each of the tests.
+Here are the results.
+Note that no flows sustained losses, so they were not plotted.
+Also, for some reason the throughput measurements were significantly
+delayed on the client side, so the throughput measurements used are
+from server side.</p>
+<h2 id="reno">Reno</h2>
+<center>
+<img src="../files/2020-04-13/plots/reno-cwnd.png"" style="width:49%" />
+<img src="../files/2020-04-13/plots/reno-rate.png"" style="width:49%" />
+<img src="../files/2020-04-13/plots/reno-rtt.png"" style="width:49%" />
+<!-- <img src=/files/2020-04-13/plots/reno-losses.png" style="width:49%" /> -->
+</center>
+<h2 id="cubic">Cubic</h2>
+<center>
+<img src="../files/2020-04-13/plots/cubic-cwnd.png"" style="width:49%" />
+<img src="../files/2020-04-13/plots/cubic-rate.png"" style="width:49%" />
+<img src="../files/2020-04-13/plots/cubic-rtt.png"" style="width:49%" />
+<!-- <img src=/files/2020-04-13/plots/cubic-losses.png" style="width:49%" /> -->
+</center>
+<h2 id="vegas">Vegas</h2>
+<center>
+<img src="../files/2020-04-13/plots/vegas-cwnd.png"" style="width:49%" />
+<img src="../files/2020-04-13/plots/vegas-rate.png"" style="width:49%" />
+<img src="../files/2020-04-13/plots/vegas-rtt.png"" style="width:49%" />
+<!-- <img src=/files/2020-04-13/plots/vegas-losses.png" style="width:49%" /> -->
+</center>
+<h2 id="bbr">BBR</h2>
+<center>
+<img src="../files/2020-04-13/plots/bbr-cwnd.png"" style="width:49%" />
+<img src="../files/2020-04-13/plots/bbr-rate.png"" style="width:49%" />
+<img src="../files/2020-04-13/plots/bbr-rtt.png"" style="width:49%" />
+<!-- <img src=/files/2020-04-13/plots/bbr-losses.png" style="width:49%" /> -->
+</center>
+<p>High RTTs are probably related to cwnd_gain.</p>
+
+                    </td></tr>
+                </table>
+            </div>
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

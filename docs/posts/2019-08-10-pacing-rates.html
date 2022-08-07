@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Taran Lynn's Site - Setting Pacing Rate of Packets</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <script type="text/javascript" src="../MathJax/es5/tex-chtml.js"></script>
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../"><img src="../images/lambda.png" /></a>
+            </div>
+
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../contact.html">Contact</a>
+                <a href="../archive.html">Archive</a>
+                <a href="../papers.html">Papers</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <div id="title">
+                Setting Pacing Rate of Packets
+            </div>
+
+            <div align="center">
+                <table width="50%">
+                    <tr><td>
+                        <div class="info">
+    Posted on August 10, 2019
+    
+        by Taran Lynn
+    
+</div>
+
+<p>Here’s a question that can be more complicated than it appears, “How does one
+pace the delivery of packets so that data is sent at a specific rate?”
+I’m approaching this question from a networking perspective, as some newer TCP
+congestion control protocols, like BBR, rely on packet pacing rather than
+traditional window based control.
+Hopefully some fields outside of computer science will also find the insights
+here to be useful.
+First let’s define some notation.
+<span class="math inline">\(x_n\)</span> is the amount of data (or something else for other fields) delivered at
+time step <span class="math inline">\(t_n\)</span>, and <span class="math inline">\(\overline{r}(m, n)\)</span> is the average rate of delivery during
+the time range <span class="math inline">\([m,n)\)</span>. <span class="math inline">\(\overline{r}\)</span> may be defined mathematically as</p>
+<p><span class="math display">\[
+\overline{r}(m, n) = \frac{\sum_{i = m}^{n - 1} d_i}{t_n - t_m}
+\]</span>
+Where our ideal case is that for a chosen constant <span class="math inline">\(R\)</span>, <span class="math inline">\(\overline{r}(m, n) = R\)</span>
+for all <span class="math inline">\(m\)</span> and <span class="math inline">\(n\)</span>.</p>
+<p>Now let’s consider the simple, but naive, solution.
+We can deliver packets at time such that such that
+<span class="math inline">\(t_n = t_{n-1} + \frac{d_{n-1}}{R}\)</span>.
+Plugging this into the formula for the average delivery rate we get</p>
+<p><span class="math display">\[\begin{align*}
+\overline{r}(m, n) &amp;= \frac{\sum_{i = m}^{n - 1} d_i}{t_n - t_m}\\
+&amp;= \frac{\sum_{i = m}^{n - 1} d_i}{\frac{d_{n - 1}}{R} + t_{n - 1} - t_m}\\
+&amp;\vdots\\
+&amp;= \frac{\sum_{i = m}^{n - 1} d_i}{\frac{\sum_{i = m}^{n - 1} d_{n - 1}}{R} + t_m - t_m}\\
+&amp;= \frac{\sum_{i = m}^{n - 1} d_i}{\frac{\sum_{i = m}^{n - 1} d_{n - 1}}{R}}\\
+&amp;= R
+\end{align*}\]</span></p>
+<p>This gives the ideal operation, but it has one flaw that makes it unusable in
+practice.
+The flaw is that if we can’t accurately deliver all packets at the exact time we
+need to, then the rate that we send at can very substantially from <span class="math inline">\(R\)</span>.
+This inaccuracy can be caused by delays in the processing of packet delivery.
+To see this we look specifically at the second expansion</p>
+<p><span class="math display">\[
+\overline{r}(m, n) = \frac{\sum_{i = m}^{n - 1} d_i}{t_{n - 1} + \frac{d_{n-1}}{R} - t_m}
+\]</span></p>
+<p>The problem here is that if <span class="math inline">\(t_{n-1} \neq t_{n-2} + d_{n-2}/R\)</span>, then the average
+rate will never become <span class="math inline">\(R\)</span>.
+To get around this we can compute the time to send the packet as not just a
+function of the last packet, but all the packets before it.</p>
+<p><span class="math display">\[\begin{align*}
+\overline{r}(0, n) &amp;= R\\
+\frac{\sum_{i = 0}^{n - 1} d_i}{t_n - t_0} &amp;= R\\
+t_n &amp;= t_0 + \frac{\sum_{i = 0}^{n - 1} d_i}{R}
+\end{align*}\]</span></p>
+<p>We can plug this into the average rate formula to confirm that it gives ideal
+operation similar to the naive implementation.</p>
+<p><span class="math display">\[\begin{align*}
+\overline{r}(n - 1, n) &amp;= \frac{d_{n-1}}{t_n - t_{n-1}}\\
+&amp;= \frac{d_{n-1}}{t_0 + \frac{\sum_{i = 0}^{n - 1} d_i}{R} - \left( t_0 -
+\frac{\sum_{i = 0}^{n - 2}}{R} \right)}\\
+&amp;= \frac{d_{n-1}}{\frac{d_{n-1}}{R}}\\
+&amp;= R
+\end{align*}\]</span></p>
+<p>Notice that <span class="math inline">\(\overline{r}(m, n)\)</span> now does not depend on any intermediate time
+values, only the starting time value <span class="math inline">\(t_0\)</span> and the amount of data sent
+previously.
+These values can be very accurately tracked and are not subject to the common
+inaccuracies that affect sending time.
+Thus, if one is not set correctly the average rate it will correct itself back
+to <span class="math inline">\(R\)</span>.
+This ability to self correct the delivery rate helps to overcome issues with
+the timing of deliveries.</p>
+<!--
+## The Continuous Case
+
+Note that the result is lot less interesting if one is controlling the rate of
+a flow, for example in a chemical plant.
+In this case we can directly set the instantanious rate $r(t)$ at time $t$.
+Even though this flow may fluctuate, we may define the average rate between
+times $t_1$ and $t_2$ as
+$$
+\overline{r}(t_1, t_2) = \frac{\int_{t_1}^{t_2} r(\tau) \text{d}\tau}{t_2 - t_1}
+$$
+
+If we solve for the $r(t)$ needed to make the average equal to $R$ like before,
+then we get
+$$\begin{align*}
+\overline{r}(t_0, t) &= R\\
+\frac{\int_{t_0}^{t} r(\tau) \text{d}\tau}{t - t_0} &= R\\
+\int_{t_0}^{t} r(\tau) \text{d}\tau &= R (t - t_0)\\
+\frac{}{\text{d}{t}} \int_{t_0}^{t} r(\tau) \text{d}\tau &= \frac{}{\text{d}{t}} R (t - t_0)\\
+r(t) &= R
+\end{align*}$$
+so there isn't any special consequence of non-uniform flows (as far as I know,
+chemical engineers correct me if I'm wrong).
+-->
+
+                    </td></tr>
+                </table>
+            </div>
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

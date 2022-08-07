@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Taran Lynn's Site - Church Encoding Haskell ADTs</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <script type="text/javascript" src="../MathJax/es5/tex-chtml.js"></script>
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../"><img src="../images/lambda.png" /></a>
+            </div>
+
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../contact.html">Contact</a>
+                <a href="../archive.html">Archive</a>
+                <a href="../papers.html">Papers</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <div id="title">
+                Church Encoding Haskell ADTs
+            </div>
+
+            <div align="center">
+                <table width="50%">
+                    <tr><td>
+                        <div class="info">
+    Posted on June 17, 2016
+    
+        by Taran Lynn
+    
+</div>
+
+<p><strong>Note: The church encoded type aliases require Rank2Types or RankNTypes.</strong></p>
+<p>Church encoding is a technique whereby data structures are represented by
+functions. To this end it can be shown that any Haskell ADT can be represented
+by a function. I will be ignoring GADTs, and focus only on product and sum
+types.</p>
+<p>To start, lets look at how product types can be encoded as a function. I will
+use a triple, or 3-element tuple, as my example. First we can see the normal ADT
+definition.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Triple</span> a b c <span class="ot">=</span> <span class="dt">Triple</span> a b c</span></code></pre></div>
+<p>One possible way to encode this as a function is as a function that takes
+another function as an argument and passes its stored values to that
+function. To see how this works, we can look at the type alias and constructor
+for the church encoded version.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Triple</span> a b c <span class="ot">=</span> <span class="kw">forall</span> r<span class="op">.</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ot">triple ::</span> a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> <span class="dt">Triple</span> a b c</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>triple x y z f <span class="ot">=</span> f x y z</span></code></pre></div>
+<p>To create a triple we simply need to pass the data we want to store into this
+function, such as <code>x = triple 1 2 3</code>. We can now access the stored values by
+passing another function into our triple. For example, if we want to turn the
+church triple into an ADT triple we could write <code>x (\a b c -&gt; (a, b, c))</code> (or
+more concisely <code>x (,,)</code>), which would return <code>(1, 2, 3)</code>.</p>
+<p>It’s also interesting to see how church encoding relates to pattern
+matching. For example, the following</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ot">foo ::</span> <span class="dt">Triple</span> a b c <span class="ot">-&gt;</span> <span class="op">...</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>foo trpl <span class="ot">=</span> trpl (\x y z <span class="ot">-&gt;</span> <span class="op">...</span>)</span></code></pre></div>
+<p>can be directly translated to the ADT version as</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">foo ::</span> <span class="dt">Triple</span> a b c <span class="ot">-&gt;</span> <span class="op">...</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>foo trpl<span class="op">@</span>(<span class="dt">Triple</span> x y z) <span class="ot">=</span> <span class="op">...</span></span></code></pre></div>
+<p>This relation to pattern matching is more interesting for types that containt
+both sums and products, but first lets discuss pure sums. The simplest example
+is a boolean value <code>data Bool = False | True</code>. This can be encoded as a function
+that takes multiple argument and chooses between them.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Bool</span> <span class="ot">=</span> <span class="kw">forall</span> r<span class="op">.</span> r <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="ot">false ::</span> <span class="dt">Bool</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>false x y <span class="ot">=</span> x</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="ot">true ::</span> <span class="dt">Bool</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>true x y <span class="ot">=</span> y</span></code></pre></div>
+<p>We can now see that we can choose different values based on whether we have a
+true or false value. To see why this important let’s look at another pattern
+matching example. The ADT version</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ot">foo ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="op">...</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>foo <span class="dt">False</span> <span class="ot">=</span> bar</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>foo <span class="dt">True</span> <span class="ot">=</span> baz</span></code></pre></div>
+<p>can be translated to the function encoded version as</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ot">foo ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="op">...</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>foo b <span class="ot">=</span> b bar baz</span></code></pre></div>
+<p>This shows that the choice encoded into the function representation is directly
+related to the choice made in pattern matching.</p>
+<p>A more interesting case is when we have a of the two previous cases. The typical
+example would be the Either type. These cases can be encoded as a function that
+takes multiple functions as arguments, and selectively applies its contained
+values to those functions. The encoding of Either is thus</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Either</span> a b <span class="ot">=</span> <span class="kw">forall</span> r<span class="op">.</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (b <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ot">left ::</span> a <span class="ot">-&gt;</span> <span class="dt">Either</span> a b</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>left x f g <span class="ot">=</span> f x</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="ot">right ::</span> b <span class="ot">-&gt;</span> <span class="dt">Either</span> a b</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>right y f g <span class="ot">=</span> g y</span></code></pre></div>
+<p>Like the other encodings, this one also has a relation to pattern matching. The
+following</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ot">foo ::</span> <span class="dt">Either</span> a b <span class="ot">-&gt;</span> <span class="op">...</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>foo e <span class="ot">=</span> e (\x <span class="ot">-&gt;</span> <span class="op">...</span>) (\y <span class="ot">-&gt;</span> <span class="op">...</span>)</span></code></pre></div>
+<p>can be directly translated to a pattern match as</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ot">foo ::</span> <span class="dt">Either</span> a b <span class="ot">-&gt;</span> <span class="op">...</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>foo e<span class="op">@</span>(<span class="dt">Left</span> x) <span class="ot">=</span> <span class="op">...</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>foo e<span class="op">@</span>(<span class="dt">Right</span> y) <span class="ot">=</span> <span class="op">...</span></span></code></pre></div>
+<p>These methods can be used to encode most ADTs, with one exception that I’ll get
+to. First, I’d like to demonstrate the power of these techniques with a more
+complicated example. The following</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Foo</span> a b c <span class="ot">=</span> <span class="dt">Foo</span> a b c</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>               <span class="op">|</span> <span class="dt">Bar</span> a b</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>               <span class="op">|</span> <span class="dt">Baz</span> a</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span><span class="ot"> ::</span> <span class="dt">Num</span> a <span class="ot">=&gt;</span> <span class="dt">Foo</span> a a a <span class="ot">-&gt;</span> a</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span> (<span class="dt">Foo</span> x y z) <span class="ot">=</span> x <span class="op">+</span> y <span class="op">+</span> z</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span> (<span class="dt">Bar</span> x y) <span class="ot">=</span> x <span class="op">+</span> y</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span> (<span class="dt">Baz</span> x) <span class="ot">=</span> x</span></code></pre></div>
+<p>can be translated to</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Foo</span> a b c <span class="ot">=</span> <span class="kw">forall</span> r<span class="op">.</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ot">foo ::</span> a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> <span class="dt">Foo</span> a b c</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>foo x y z f g h <span class="ot">=</span> f x y z</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="ot">bar ::</span> a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> <span class="dt">Foo</span> a b c</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>bar x y f g h <span class="ot">=</span> g x y</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="ot">baz ::</span> a <span class="ot">-&gt;</span> <span class="dt">Foo</span> a b c</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>baz x f g h <span class="ot">=</span> h x</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span><span class="ot"> ::</span> <span class="dt">Num</span> a <span class="ot">=&gt;</span> <span class="dt">Foo</span> a a a <span class="ot">-&gt;</span> a</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span> f <span class="ot">=</span> f (\x y z <span class="ot">-&gt;</span> x <span class="op">+</span> y <span class="op">+</span> z) (<span class="op">+</span>) <span class="fu">id</span></span></code></pre></div>
+<p>The area where church encoding ADTs becomes problematic is when encoding
+recursively defined ADTs. The typical example of this is the List type, where
+<code>data List a = Cons a (List a) | Nil</code>. The naive way to encode this would be as</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">List</span> a <span class="ot">=</span> <span class="kw">forall</span> b<span class="op">.</span> (a <span class="ot">-&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> b</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="ot">cons ::</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>cons x xs f y <span class="ot">=</span> f x xs</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="ot">nil ::</span> <span class="dt">List</span> a</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>nil f y <span class="ot">=</span> y</span></code></pre></div>
+<p>However, recursive type aliases are not allowed in Haskell. One way to overcome
+this issue by using a newtype declaration</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">List</span> a <span class="ot">=</span> <span class="dt">List</span> {<span class="ot"> runList ::</span> <span class="kw">forall</span> r<span class="op">.</span> (a <span class="ot">-&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r }</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="ot">cons ::</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>cons x xs <span class="ot">=</span> <span class="dt">List</span> <span class="op">$</span> \f y <span class="ot">-&gt;</span> f x xs</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="ot">nil ::</span> <span class="dt">List</span> a</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>nil <span class="ot">=</span> <span class="dt">List</span> <span class="op">$</span> \f y <span class="ot">-&gt;</span> y</span></code></pre></div>
+<p>We can then apply these lists using the <code>runList</code> function. Here’s an example
+function</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ot">stringifyList ::</span> <span class="dt">Show</span> a <span class="ot">=&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>stringifyList xs <span class="ot">=</span> runList xs (\y ys <span class="ot">-&gt;</span> (<span class="fu">show</span> y) <span class="op">++</span> <span class="st">&quot; &quot;</span> <span class="op">++</span> (stringifyList ys)) <span class="st">&quot;&quot;</span></span></code></pre></div>
+<p><code>stringifyList (cons 1 (cons 2 (cons 3 nil)))</code> then produces the string <code>"1 2 3 "</code>.</p>
+<p>Note that this List encoding isn’t strictly a church encoding. This is because
+it is nonrepresentable in typed lambda calculus, due to the use of recursive
+types. A correct way to church encode List is as a fold.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">List</span> a <span class="ot">=</span> <span class="kw">forall</span> r<span class="op">.</span> r <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="ot">nil ::</span> <span class="dt">List</span> a</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>nil x _ <span class="ot">=</span> x</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="ot">cons ::</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a <span class="ot">-&gt;</span> <span class="dt">List</span> a</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>cons x xs y f <span class="ot">=</span> f x (xs y f)</span></code></pre></div>
+<p>Such an encoded list <code>xs</code> can be converted into a regular list by running <code>xs [] (:)</code>.</p>
+<p>We can also encode the Tree type as a fold.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">{-</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">data Tree a = Leaf a</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">            | Branch (Tree a) a (Tree a)</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">-}</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Tree</span> a <span class="ot">=</span> <span class="kw">forall</span> r<span class="op">.</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r</span></code></pre></div>
+<p>An encoded tree <code>t</code> can be converted to an ADT by running <code>t Leaf Branch</code>.</p>
+<p>This shows that a general technique for encoding recursive ADTs is to replace
+the recursive arguments with the church encoded function’s return type (which is
+<code>r</code> in the previous examples).</p>
+
+                    </td></tr>
+                </table>
+            </div>
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

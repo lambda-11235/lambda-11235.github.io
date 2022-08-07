@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Taran Lynn's Site - Implementing a Dependently Typed Language</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+
+        <script type="text/javascript" src="../MathJax/es5/tex-chtml.js"></script>
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../"><img src="../images/lambda.png" /></a>
+            </div>
+
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../contact.html">Contact</a>
+                <a href="../archive.html">Archive</a>
+                <a href="../papers.html">Papers</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <div id="title">
+                Implementing a Dependently Typed Language
+            </div>
+
+            <div align="center">
+                <table width="50%">
+                    <tr><td>
+                        <div class="info">
+    Posted on May 21, 2017
+    
+        by Taran Lynn
+    
+</div>
+
+<p>I’ve recently implemented a dependently typed language called
+<a href="https://github.com/lambda-11235/ttyped">TTyped</a>. It took a little over a week
+to complete. This project allowed me to learn how to implement a type checker,
+as well as the difficulties of implementing a dependently typed language.</p>
+<h2 id="ramping-up">Ramping Up</h2>
+<p>Before working on TTyped I wrote a series of projects that built up to it. I
+first implemented the untyped <a href="https://en.wikipedia.org/wiki/Lambda_calculus">lambda
+calculus</a>, then the <a href="https://en.wikipedia.org/wiki/Simply_typed_lambda_calculus">simply typed
+lambda</a> calculus,
+and finally <a href="https://en.wikipedia.org/wiki/System_F">System F</a>. Implementing the
+untyped lambda calculus was easy, even with lazy evaluation added on top of it.
+When I started implementing the type checker for the simply typed lambda
+calculus I quickly learned that my view of how a type checker worked was wrong.
+Starting from C++ or Java one would think that a type checker simply determines
+whether a value matches its given type. For example, in the declaration <code>String s = "foo"</code> we simply have to determine that <code>"foo"</code> has type <code>String</code>. However,
+before we can determine that <code>"foo"</code> is of type <code>String</code> we first have to
+determine what type <code>"foo"</code> has. This hints at the main task a type checker
+has; to determine the types of terms and <strong>optionally</strong> determine whether they
+match our expectations (or throw an error if they can’t be typed). This
+distinction becomes more apparent in a language like the simply typed lambda
+calculus where we don’t state the return types of functions. For example,
+consider what the type of <code>(λx : a. x)</code> would be if <code>a</code> was some type. In the
+body of the function we know that <code>x</code> is of type <code>a</code>, and since <code>x</code> is the
+returned value the return type must also be <code>a</code>, thus the type of the whole
+function is <code>a → a</code>. Now consider what the type of <code>(λx : a. (x x))</code> might be.
+In the body of the function we know that <code>x : a</code>, and we also know only function
+types can be applied, so when we see <code>(x x)</code> we look at the left side of the
+application to see if it’s a function type, which it isn’t. The expression is
+thus untypable, so we throw an error.</p>
+<p>Next, I decided to tackle System F. Even with parametric polymorphism added in
+the type checker wasn’t that different from the one for simply typed lambda
+calculus and was rather easy to implement. However, at this time I decided to
+implement a reducer that reduced terms to their normal form, as compared to the
+evaluator that I had been using that a simply lexical scoping scheme. I
+immediatly ran into the problem of lambda capturing of variables. After much
+heartache I decided to use <a href="https://en.wikipedia.org/wiki/De_Bruijn_index">de Bruijn
+indices</a>, which vastly simplified
+the problem of reduction.</p>
+<h2 id="to-dependent-typing">To Dependent Typing</h2>
+<p>The next step after System F is System Fω, but I decided to skip it and go to
+full dependent types. The first version of TTyped was based on <a href="https://en.wikipedia.org/wiki/Intuitionistic_type_theory">intuitionistic
+type theory</a> trimmed
+down to non-cumulative universes and functions. I later made the universes
+cumulative and added finite (bottom, unit, boolean, etc.) types. However, a
+couple of things left me unsatisfied. One problem was that I could not pass the
+identity function to itself, since an identity funtion over the <code>n</code>th universe
+belong to the universe <code>n + 1</code>. This also meant that I couldn’t properly Church
+encode data. To able to handle all the data types I wanted I would thus have to
+add three built in inductive types, namely sigma, sum, and well-founded types. I
+haven’t yet implemented these.</p>
+<p>Seeking a way around these limitations I turned to the <a href="https://en.wikipedia.org/wiki/Calculus_of_constructions">Calculus of
+Constructions (CoC)</a>. I
+forked the implementation out into a second branch and started implementing CoC
+based off of Coquand and Huet’s 1986 paper “The Calculus of Constructions”. The
+implementation was fairly straight forward, especially with Coquand’s thourough
+and detailed discriptions. In the CoC the type of types <code>*</code> does not have a type
+and isn’t allowed at the value level. This removes the need for universes and
+allowed me to pass the identity function to itself and to Church encode data.
+Unfortunately this meant that Church encoded data either had to operate over
+types or values, and couldn’t operate over both.</p>
+<h2 id="conclusions">Conclusions</h2>
+<p>I think I prefer the CoC implementation of TTyped over the ITT version. It is
+simpler and more flexible from a programming perspective, although from a logic
+perspective I believe it would be harder to use. Overall, both were fairly easy
+to implement and were fun to program in. For someone wishing to implement their
+own dependently typed language I would suggest reading three papers.
+“Constructive Mathematics and Computer Programming” be Martin Löf gives a short
+description of ITT with cumulative universes. In “A Tutorial Implementation of a
+Dependently Typed Lambda Calculus” by Andres Löh, Conor McBride, and Wouter
+Swierstra lead the reader through implementing a dependently typed language
+(called LambdaPi) in Haskell. Finally, Coquand’s paper is a must read for
+dependently type theory.</p>
+
+                    </td></tr>
+                </table>
+            </div>
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>
