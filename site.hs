@@ -17,17 +17,13 @@ pandocMathCompiler =
         newExtensions =  defaultExtensions <> mathExtensions
         writerOptions = defaultHakyllWriterOptions {
                           writerExtensions = newExtensions,
-                          writerHTMLMathMethod = MathJax "/MathJax/"
+                          writerHTMLMathMethod = MathJax ""
                         }
     in pandocCompilerWith defaultHakyllReaderOptions writerOptions
 
 
 main :: IO ()
 main = hakyllWith config $ do
-    match "MathJax/**" $ do
-        route   idRoute
-        compile copyFileCompiler
-
     match "files/**" $ do
         route   idRoute
         compile copyFileCompiler
